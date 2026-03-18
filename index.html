@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora - Vidigal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --primary: #d32f2f;
+            --primary-hover: #b71c1c;
+            --text: #ffffff;
+            --text-muted: #aaaaaa;
+            --border: #333333;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 500px;
+            border-top: 5px solid var(--primary);
+        }
+
+        h1 {
+            font-family: 'Permanent Marker', cursive;
+            text-align: center;
+            color: var(--primary);
+            font-size: 3rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background-color: #2c2c2c;
+            color: var(--text);
+            box-sizing: border-box;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-group input {
+            width: auto;
+            transform: scale(1.2);
+        }
+
+        .item-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .item-selector select { flex: 2; }
+        .item-selector input { flex: 1; }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-add {
+            background-color: #4caf50;
+            width: auto;
+        }
+        .btn-add:hover { background-color: #388e3c; }
+
+        .items-list {
+            background-color: #2c2c2c;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 50px;
+            margin-bottom: 20px;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding: 5px 0;
+        }
+        .item-row:last-child { border-bottom: none; }
+
+        .remove-btn {
+            color: #ff5252;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .results {
+            background-color: #111;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .results p {
+            margin: 5px 0;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .results span {
+            font-weight: bold;
+            color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>VIDIGAL</h1>
+
+    <div class="form-group">
+        <label for="vendedor">Nome do Vendedor:</label>
+        <input type="text" id="vendedor" placeholder="Seu nome no jogo">
+    </div>
+
+    <div class="form-group">
+        <label for="passaporte">Passaporte:</label>
+        <input type="number" id="passaporte" placeholder="ID">
+    </div>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="parceria">
+        <label for="parceria" style="margin:0;">Venda com Parceria?</label>
+    </div>
+
+    <hr style="border: 1px solid var(--border); margin: 20px 0;">
+
+    <div class="form-group">
+        <label>Adicionar Itens:</label>
+        <div class="item-selector">
+            <select id="item-select"></select>
+            <input type="number" id="item-qtd" value="1" min="1">
+            <button class="btn-add" onclick="adicionarItem()">+</button>
+        </div>
+    </div>
+
+    <div class="items-list" id="lista-itens">
+        <div style="color: var(--text-muted); text-align: center; margin-top: 10px;">Nenhum item adicionado.</div>
+    </div>
+
+    <div class="results">
+        <p>Total a cobrar: <span id="res-total">R$ 0</span></p>
+        <p>Sua parte (35%): <span id="res-comissao">R$ 0</span></p>
+        <p>Depositar Painel (65%): <span id="res-deposito" style="color: var(--primary);">R$ 0</span></p>
+    </div>
+
+    <button onclick="enviarWebhook()" id="btn-enviar">ENVIAR PARA O DISCORD</button>
+</div>
+
+<script>
+    // Tabela de Preços (Corrigida a lógica de K e KK baseado na sua imagem)
+    const tabelaPrecos = {
+        "FAJUTA": { normal: 170000, parceria: 120000 },
+        "FIVE": { normal: 350000, parceria: 300000 },
+        "TEC-9": { normal: 540000, parceria: 480000 },
+        "MP-5": { normal: 600000, parceria: 450000 },
+        "MICRO-UZI": { normal: 540000, parceria: 480000 },
+        "AK-47": { normal: 660000, parceria: 600000 },
+        "AK-MK2": { normal: 950000, parceria: 850000 },
+        "G-36": { normal: 1100000, parceria: 1000000 },
+        "AP-PISTOL": { normal: 600000, parceria: 540000 },
+        "SMG-MK2": { normal: 850000, parceria: 780000 },
+        "M-TAR": { normal: 1700000, parceria: 1500000 },
+        "SHOTGUN": { normal: 1400000, parceria: 1200000 },
+        "GLOCK RAJADA": { normal: 1400000, parceria: 1200000 },
+        "M-4": { normal: 2600000, parceria: 2300000 },
+        "HK-G3A3": { normal: 4200000, parceria: 3800000 },
+        "AR VASCO": { normal: 3500000, parceria: 3300000 },
+        "G3 FEMENINA": { normal: 3500000, parceria: 3300000 },
+        "PENTE DUPLO": { normal: 3500000, parceria: 3300000 },
+        "AR-15": { normal: 5500000, parceria: 5300000 }
+    };
+
+    const webhookURL = "https://discord.com/api/webhooks/1483712514180251649/CsEsi3BvvzARRCGBbn4I57Xcc0uH3PXSgd6DTgruCGOqrpU39T5ZjafPjajZ1K4_uAw1";
+    let carrinho = [];
+
+    // Preencher o select de itens
+    window.onload = () => {
+        const select = document.getElementById('item-select');
+        for (let arma in tabelaPrecos) {
+            let option = document.createElement('option');
+            option.value = arma;
+            option.textContent = arma;
+            select.appendChild(option);
+        }
+        
+        // Atualizar valores se o checkbox de parceria mudar
+        document.getElementById('parceria').addEventListener('change', atualizarCalculos);
+    };
+
+    function formatarDinheiro(valor) {
+        return "R$ " + valor.toLocaleString('pt-BR');
+    }
+
+    function adicionarItem() {
+        const nomeItem = document.getElementById('item-select').value;
+        const qtd = parseInt(document.getElementById('item-qtd').value);
+        
+        if (qtd > 0) {
+            carrinho.push({ item: nomeItem, quantidade: qtd });
+            renderizarCarrinho();
+            atualizarCalculos();
+        }
+    }
+
+    function removerItem(index) {
+        carrinho.splice(index, 1);
+        renderizarCarrinho();
+        atualizarCalculos();
+    }
+
+    function renderizarCarrinho() {
+        const lista = document.getElementById('lista-itens');
+        lista.innerHTML = '';
+
+        if (carrinho.length === 0) {
+            lista.innerHTML = '<div style="color: var(--text-muted); text-align: center; margin-top: 10px;">Nenhum item adicionado.</div>';
+            return;
+        }
+
+        carrinho.forEach((obj, index) => {
+            lista.innerHTML += `
+                <div class="item-row">
+                    <span>${obj.quantidade}x ${obj.item}</span>
+                    <span class="remove-btn" onclick="removerItem(${index})">X</span>
+                </div>
+            `;
+        });
+    }
+
+    function atualizarCalculos() {
+        const isParceria = document.getElementById('parceria').checked;
+        let total = 0;
+
+        carrinho.forEach(obj => {
+            const precoUnitario = isParceria ? tabelaPrecos[obj.item].parceria : tabelaPrecos[obj.item].normal;
+            total += precoUnitario * obj.quantidade;
+        });
+
+        const comissao = total * 0.35;
+        const deposito = total * 0.65;
+
+        document.getElementById('res-total').textContent = formatarDinheiro(total);
+        document.getElementById('res-comissao').textContent = formatarDinheiro(comissao);
+        document.getElementById('res-deposito').textContent = formatarDinheiro(deposito);
+    }
+
+    async function enviarWebhook() {
+        const vendedor = document.getElementById('vendedor').value;
+        const passaporte = document.getElementById('passaporte').value;
+        const isParceria = document.getElementById('parceria').checked;
+        const btn = document.getElementById('btn-enviar');
+
+        if (!vendedor || !passaporte || carrinho.length === 0) {
+            alert("Preencha seu nome, passaporte e adicione pelo menos um item!");
+            return;
+        }
+
+        btn.textContent = "ENVIANDO...";
+        btn.disabled = true;
+
+        let total = 0;
+        let itensString = "";
+
+        carrinho.forEach(obj => {
+            const precoUnitario = isParceria ? tabelaPrecos[obj.item].parceria : tabelaPrecos[obj.item].normal;
+            total += precoUnitario * obj.quantidade;
+            itensString += `• ${obj.quantidade}x ${obj.item}\n`;
+        });
+
+        const comissao = total * 0.35;
+        const deposito = total * 0.65;
+
+        const payload = {
+            username: "Vidigal RP",
+            avatar_url: "https://i.imgur.com/R388Yle.png",
+            embeds: [
+                {
+                    title: "🔫 Novo Registro de Venda",
+                    color: 13840175, // Cor vermelha no Discord
+                    fields: [
+                        { name: "👤 Vendedor", value: vendedor, inline: true },
+                        { name: "🛂 Passaporte", value: passaporte, inline: true },
+                        { name: "🤝 Parceria?", value: isParceria ? "Sim" : "Não", inline: true },
+                        { name: "🛒 Itens Vendidos", value: itensString, inline: false },
+                        { name: "💰 Valor Total", value: formatarDinheiro(total), inline: true },
+                        { name: "💵 Sua Parte (35%)", value: formatarDinheiro(comissao), inline: true },
+                        { name: "🏦 Depositar (65%)", value: formatarDinheiro(deposito), inline: true }
+                    ],
+                    footer: { text: "Sistema Vidigal" },
+                    timestamp: new Date().toISOString()
+                }
+            ]
+        };
+
+        try {
+            const response = await fetch(webhookURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert("Venda registrada com sucesso no Discord!");
+                // Limpar formulário
+                carrinho = [];
+                renderizarCarrinho();
+                atualizarCalculos();
+                document.getElementById('vendedor').value = '';
+                document.getElementById('passaporte').value = '';
+            } else {
+                alert("Erro ao enviar para o Discord.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Erro de conexão ao tentar enviar o Webhook.");
+        } finally {
+            btn.textContent = "ENVIAR PARA O DISCORD";
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
